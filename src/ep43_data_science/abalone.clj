@@ -24,6 +24,10 @@
        csv/read-csv
        (map parse-row)))
 
+(def numeric-variables
+  [:rings :length :diameter :height :whole-weight
+   :shucked-weight :viscera-weight :shell-weight])
+
 (comment
   (take 2 (shuffle data))
   ;; => ({:rings 9,
