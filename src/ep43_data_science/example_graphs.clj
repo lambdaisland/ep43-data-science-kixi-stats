@@ -6,6 +6,8 @@
             [net.cgrand.xforms :as x]
             [thi.ng.geom.viz.core :as viz]))
 
+(def data (filter #(< 0 (:height %) 100) abalone/data))
+
 ;; Redefine this with your preferred method of viewing the graphs
 (defn show [spec]
   (g/open spec)
@@ -18,8 +20,8 @@
 (let [[sd mean] (transduce (map (comp #(Math/log %) :rings))
                            (redux/juxt kixi/standard-deviation
                                        kixi/median)
-                           abalone/data)]
-  (-> {:data      abalone/data
+                           data)]
+  (-> {:data      data
        :x         (comp g/ln (g/jitter 0.5) :rings)
        :bin-count 28
        :stroke    (fn [[rings count]]
@@ -32,7 +34,7 @@
 ;; Barcode plot of the height data. The two highest measurements are extreme
 ;; outliers, we'll assume they're mistakes and drop them. Different sexes are
 ;; represented with colors.
-(-> {:data           (sequence (comp (x/sort-by :height) (x/drop-last 2)) abalone/data)
+(-> {:data           (sequence (comp (x/sort-by :height) (x/drop-last 2)) data)
      :x              (comp (g/jitter 0.5) :height)
      :width          1000
      :height         150
@@ -42,9 +44,13 @@
                         "F" "rgb(150,20,50)"
                         "I" "rgb(20,150,50)")
      :stroke-opacity 0.1}
+    g/barcode-plot
     show)
 
-(-> {:data abalone/data
+;; A scatterplot of rings vs shell-weight on logarithmic axes, including major
+;; and minor grid lines.
+
+(-> {:data data
      :x (comp (g/jitter 0.5) :rings)
      :y :shell-weight
      :x-axis-fn viz/log-axis
@@ -53,3 +59,77 @@
      :grid-minor-y? true}
     g/scatter-plot
     show)
+
+;; Box plots of all numeric variables. The extreme outliers for height
+;; immediately stick out.
+
+(show
+ (g/hbox
+  (apply g/vbox (map #(g/box-plot {:data abalone/data :x %})
+                     [:rings
+                      :length
+                      :diameter
+                      :height]))
+  (apply g/vbox (map #(g/box-plot {:data abalone/data :x %})
+                     [:whole-weight
+                      :shucked-weight
+                      :viscera-weight
+                      :shell-weight] ))))
+
+
+
+;; Barcode plots for the different variables. These make it really clear that
+;; the length measurements only have a milimeter precision.
+(show
+ (g/hbox
+  (apply g/vbox (map #(g/barcode-plot {:data data :x %})
+                     [:rings
+                      :length
+                      :diameter
+                      :height]))
+  (apply g/vbox (map #(g/barcode-plot {:data data :x %})
+                     [:whole-weight
+                      :shucked-weight
+                      :viscera-weight
+                      :shell-weight] ))))
+
+;; Perform a linear regression, show a scatterplot of the original data with
+;; some jitter applied, plus the line of the regression.
+;;
+;; Add some opacity to better show the density.
+
+(let [log-rings    (comp g/ln :rings)
+      regress      (kixi/simple-linear-regression :height log-rings)
+      [b a]        (transduce identity regress data)
+      linear-model (fn [x]
+                     (+ b (* a x)))]
+  (show (g/overlay (g/scatter-plot {:data           data
+                                    :x              (comp (g/jitter 0.5) :height)
+                                    :y              (comp g/ln (g/jitter 0.5) :rings)
+                                    :fill-opacity   0.3
+                                    :radius         4
+                                    :stroke         "#fda"
+                                    :stroke-opacity 0.1})
+                   (g/function-plot {:data data
+                                     :x    :height
+                                     :y    log-rings
+                                     :fx   linear-model}))))
+
+
+;; A plot of the residuals
+(let [log-rings    (comp g/ln :rings)
+      regress      (kixi/simple-linear-regression :height log-rings)
+      [b a]        (transduce identity regress data)
+      linear-model (fn [x]
+                     (+ b (* a x)))]
+  (show (g/overlay (g/scatter-plot {:data           data
+                                    :x              (comp (g/jitter 0.5) :height)
+                                    :y              #(- (g/ln ((g/jitter 0.5) (:rings %))) (linear-model (:height %)))
+                                    :fill-opacity   0.3
+                                    :radius         4
+                                    :stroke         "#fda"
+                                    :stroke-opacity 0.1})
+                   (g/function-plot {:data data
+                                     :x    :height
+                                     :y-domain [0 1]
+                                     :fx   (constantly 0)}))))

@@ -166,7 +166,7 @@
     :or   {y-pos        0.5
            box-size     0.2
            whisker-size 0.1
-           color        "#05B"}}]
+           color        "#39D"}}]
 
   (let [values                             (opts->xs opts)
         scale-x                            (:scale x-axis)
@@ -219,7 +219,8 @@
                       (for [o outliers]
                         (svg/circle [(scale-x o) (from-center ((jitter 0.1) 0))]
                                     3
-                                    {:stroke color :fill "white"}))))))
+                                    {:fill color
+                                     :fill-opacity 0.5}))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Graph components
@@ -394,7 +395,7 @@
                               :bar-width  bar-width}]})})))
 
 (defn scatter-plot [opts]
-  (let [{:keys [width height data x y fill stroke radius]
+  (let [{:keys [width height data x y fill fill-opacity stroke stroke-opacity radius]
          :or   {x first
                 y second}
          :as   opts}
@@ -408,7 +409,9 @@
                                             (svg/circle pos
                                                         (maybe-call radius d 3)
                                                         {:fill (maybe-call fill d "#f93")
-                                                         :stroke (maybe-call stroke d "none")}))
+                                                         :fill-opacity (maybe-call fill-opacity d)
+                                                         :stroke (maybe-call stroke d "none")
+                                                         :stroke-opacity (maybe-call fill-opacity d)}))
                                 :item-pos (juxt x y)
                                 :layout   viz/svg-scatter-plot}]))}))
 
