@@ -133,3 +133,21 @@
                                      :x    :height
                                      :y-domain [0 1]
                                      :fx   (constantly 0)}))))
+
+
+;; Abuse a scatter-plot to show the correlation matrix
+
+(let [positions (into {} (map vector abalone/numeric-variables (drop 1 (range))))]
+  (show (g/scatter-plot {:data     (transduce identity (kixi/correlation-matrix (into {} (x/for [k %] [k k]) abalone/numeric-variables)) data)
+                         :x-domain [0 (count abalone/numeric-variables)]
+                         :y-domain [0 (count abalone/numeric-variables)]
+                         :x        #(positions (first (key %)))
+                         :y        #(positions (second (key %)))
+                         :radius   #(* (val %) (val %) (val %) 10) ;; Third power to make the differences a bit more pronounced
+                         :x-label  (viz/default-svg-label #(try (nth abalone/numeric-variables (dec (long %)))
+                                                                (catch Throwable _))) ;; too lazy to bother about index out of bounds
+
+                         :y-label  (viz/default-svg-label #(try (nth abalone/numeric-variables (dec (long %)))
+                                                                (catch Throwable _)))
+                         :left-margin 100
+                         :right-margin 50})))

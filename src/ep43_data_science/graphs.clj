@@ -245,17 +245,19 @@
                 left-margin
                 right-margin
                 bottom-margin
-                x-padding-factor]}
+                x-padding-factor
+                x-label]}
         opts
 
         [min-x max-x :as domain] (x-domain opts)
         delta (- max-x min-x)]
-    {:domain  domain
-     :range   [left-margin (- width right-margin)]
-     :major   (:x-major opts (tick-mark-size delta))
-     :minor   (:x-minor opts (/ (tick-mark-size delta) 2))
-     :pos     (- height bottom-margin)
-     :visible (:x-visible opts true)}))
+    (cond-> {:domain  domain
+             :range   [left-margin (- width right-margin)]
+             :major   (:x-major opts (tick-mark-size delta))
+             :minor   (:x-minor opts (/ (tick-mark-size delta) 2))
+             :pos     (- height bottom-margin)
+             :visible (:x-visible opts true)}
+      x-label (assoc :label x-label))))
 
 (defn y-domain [opts]
   (if-let [domain (:y-domain opts)]
@@ -268,17 +270,18 @@
       [min-y (+ max-y padding)])))
 
 (defn y-axis-spec [opts]
-  (let [{:keys [height left-margin bottom-margin top-margin]} opts
+  (let [{:keys [height left-margin bottom-margin top-margin y-label]} opts
         [min-y max-y :as domain] (y-domain opts)
         delta (- max-y min-y)]
-    {:domain      domain
-     :range       [(- height bottom-margin) top-margin]
-     :pos         left-margin
-     :major       (:y-major opts (tick-mark-size delta))
-     :minor       (:y-minor opts (/ (tick-mark-size delta) 2))
-     :label-dist  15
-     :label-style {:text-anchor "end"}
-     :visible     (:y-visible opts true)}))
+    (cond-> {:domain      domain
+             :range       [(- height bottom-margin) top-margin]
+             :pos         left-margin
+             :major       (:y-major opts (tick-mark-size delta))
+             :minor       (:y-minor opts (/ (tick-mark-size delta) 2))
+             :label-dist  15
+             :label-style {:text-anchor "end"}
+             :visible     (:y-visible opts true)}
+      y-label (assoc :label y-label))))
 
 (defn grid-spec [{:keys [grid-stroke
                          major-x?

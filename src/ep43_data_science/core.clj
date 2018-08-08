@@ -85,7 +85,7 @@
 ;; no clear line, close to -1 or 1 means good fit, either positive or negative
 
 (->> data
-     (transduce identity (kixi/correlation-matrix (into {:rings} (x/for [k %] [k k]) abalone/numeric-variables)))
+     (transduce identity (kixi/correlation-matrix (into {} (x/for [k %] [k k]) abalone/numeric-variables)))
      (filter #(= (second (key %)) :rings))
      (sort-by val)
      reverse)
