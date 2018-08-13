@@ -39,6 +39,9 @@
 (defn ln [n]
   (Math/log n))
 
+(defn exp [n]
+  (Math/exp n))
+
 (defn pow [base exp]
   (Math/pow base exp))
 
@@ -171,8 +174,6 @@
   (let [values                             (opts->xs opts)
         scale-x                            (:scale x-axis)
         scale-y                            (:scale y-axis)
-        box-size                           0.2
-        whisker-size                       0.1
         from-center                        #(scale-y (- y-pos %))
         {:keys [q1 q3 median min max iqr]} (transduce identity kixi/summary values)
         min-whisker                        (x/some (comp (filter #(> % (- q1 (* 1.5 iqr))))
@@ -228,14 +229,14 @@
 ;; Bits and pieces that make up a renderable graph-specification
 
 (defn x-domain [opts]
-  (:x-domain
-   opts
-   (let [xs      (opts->xs opts)
-         min-x   (apply min xs)
-         max-x   (apply max xs)
-         range-x (- max-x min-x)
-         padding (* (:x-padding-factor opts) range-x)]
-     [(- min-x padding) (+ max-x padding)])))
+  (if-let [domain (:x-domain opts)]
+    domain
+    (let [xs      (opts->xs opts)
+          min-x   (apply min xs)
+          max-x   (apply max xs)
+          range-x (- max-x min-x)
+          padding (* (:x-padding-factor opts) range-x)]
+      [(- min-x padding) (+ max-x padding)])))
 
 (defn x-axis-spec
   "Auto-generate an x-axis description that spans the domain of provided values."
@@ -377,7 +378,7 @@
                  stroke-width 10
                  interleave   1
                  bar-width    0}
-          :as   opts} (graph-opts opts)
+          :as   opts} (graph-opts (merge {:x identity} opts))
 
          ;; Sturge's Rule of thumb
          bin-count (:bin-count opts (+ 1 (* 3.322 (log10 (count data)))))
@@ -461,7 +462,6 @@
      :height height
      :graph  (assoc (xy-coordinate-system opts)
                     :data [(-> opts
-                               (select-keys [:data :x])
                                (assoc :layout svg-box-plot))])}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -487,8 +487,12 @@
                                             (:y-axis-spec gh))
                     x-axis      (x-axis-fn x-axis-spec)
                     y-axis      (y-axis-fn y-axis-spec)
-                    data        (into (:data gg) (:data gh))]
+                    data        (into (:data gg) (:data gh))
+                    height      (max (:height g) (:height h))
+                    width       (max (:width g) (:width h))]
                 (assoc (merge g h)
+                       :height height
+                       :width width
                        :graph (assoc gg
                                      :x-axis x-axis
                                      :y-axis y-axis
@@ -554,7 +558,7 @@
 
 (defn render-svg [spec]
   (->> (render* spec)
-       (with-bg "white")
+       (with-bg (:background spec "white"))
        (svg/svg {:width (some :width [spec *defaults*])
                  :height (some :height [spec *defaults*])})
        (svg/serialize)))

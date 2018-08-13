@@ -151,3 +151,22 @@
                                                                 (catch Throwable _)))
                          :left-margin 100
                          :right-margin 50})))
+
+;; A QQ-plot (https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot)
+;; of rings vs height, and log(rings) vs height
+
+(let [hr (transduce (map :rings) kixi/histogram data)
+      hh (transduce (map :height) kixi/histogram data)]
+  (show (g/function-plot {:data data
+                          :x-domain [0 29]
+                          :y-domain [0 50]
+                          :fx (fn [x]
+                                (kixi.dist/quantile hh (kixi.dist/cdf hr x)))})))
+
+(let [hr (transduce (map (comp g/ln :rings)) kixi/histogram data)
+      hh (transduce (map :height) kixi/histogram data)]
+  (show (g/function-plot {:data data
+                          :x-domain [0 (g/ln 29)]
+                          :y-domain [0 50]
+                          :fx (fn [x]
+                                (kixi.dist/quantile hh (kixi.dist/cdf hr x)))})))
