@@ -8,15 +8,16 @@
             [kixi.stats.distribution :as kixi.dist]
             [net.cgrand.xforms :as x]
             [clojure.java.browse :as browse]
-            [clojure.java.shell :as sh])
+            [clojure.java.shell :as sh]
+            [clojure.string :as str])
   (:import [java.lang Math]))
 
 (def ^:dynamic *defaults*
   "Default values for graphs, these can all be changed by passing them in
   explicitly to the graph functions, or you can rebind them here to provide your
   own defaults."
-  {:width            800
-   :height           500
+  {:width            500
+   :height           300
    :left-margin      50
    :right-margin     10
    :top-margin       20
@@ -341,7 +342,7 @@
                             :grid?       false
                             :y-domain    [0 1]
                             :y-visible   false
-                            :height      100}
+                            :height      80}
                            opts))]
     {:plot   viz/svg-plot2d-cartesian
      :width  width
@@ -574,9 +575,25 @@
 (defn render-to-org-link [spec]
   (str "[[file:" (render-to-tempfile spec) "]]"))
 
-(defn open [spec]
-  (let [file (render-to-tempfile spec)]
-    (browse/browse-url (str "file://" file))))
+#_(defn open [spec]
+    (let [file (render-to-tempfile spec)]
+      (browse/browse-url (str "file://" file))))
+
+(defn open [{:keys [width height] :as spec}]
+  (let [file (render-to-tempfile spec)
+        x-offset #_1500 (+ 1280 #_1920)
+        y-offset #_900 720]
+    (sh/sh "killall" "viewnior")
+    (future (sh/sh "viewnior" (str file)))
+    (future
+      (dotimes [_ 100]
+        (Thread/sleep 10)
+        (sh/sh "wmctrl" "-r" (str/replace (str file) #".*/" "") "-e"
+               (str "0,"
+                    (- x-offset width 20) ","
+                    (- y-offset height 70) ",-1,-1"))))
+    nil))
+
 
 (defn open-with [spec program]
   (sh/sh program (str (render-to-tempfile spec)))
